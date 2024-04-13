@@ -1,127 +1,236 @@
+import 'dart:async';
+import 'dart:math';
+
+import 'package:flame/components.dart';
+import 'package:flame/events.dart';
+import 'package:flame/extensions.dart';
+import 'package:flame/flame.dart';
+import 'package:flame/game.dart';
+import 'package:flame/image_composition.dart';
+import 'package:flame/input.dart';
 import 'package:flutter/material.dart';
 
-
-
 void main() {
-  runApp(const MyApp());
+  ComponentExample001 myGame = ComponentExample001();
+  runApp(
+    GameWidget(
+      game: myGame,
+    ),
+  );
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+//
+//
+// Simple component shape example of a square component
+class Square extends PositionComponent with HasGameRef<ComponentExample001>{
 
-  // This widget is the root of your application.
+
+@override
+  // TODO: implement gameRef
+  ComponentExample001 get gameRef => super.gameRef;
+
+
+
+  // default values
+  //
+  Vector2 velocity = Vector2(0, 1).normalized() * 50;
+  var rotationSpeed = 0.3;
+  var squareSize = 128.0;
+  var color = Paint()
+    ..color = Colors.orange
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 2;
+  List<RectangleComponent> lifeBarElements = List<RectangleComponent>.filled(
+      3, RectangleComponent(size: Vector2(1, 1)),
+      growable: false);
+
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        useMaterial3: true,
+  Future<void> onLoad() async {
+    super.onLoad();
+
+    size.setValues(squareSize, squareSize);
+    anchor = Anchor.center;
+    createLifeBar();
+
+  }
+
+  @override
+  //
+  // render the shape
+  void render(Canvas canvas) {
+    super.render(canvas);
+    canvas.drawRect(size.toRect(), color);
+  }
+
+  @override
+  //
+  // update the inner state of the shape
+  // in our case the position
+  void update(double dt) {
+    super.update(dt);
+    // speed is refresh frequency independent
+    position +=  velocity *dt ;
+    // add rotational speed update as well
+    var angleDelta = dt * rotationSpeed;
+    angle = (angle + angleDelta) % (2 * pi);
+
+
+
+    if(position.y > gameRef.size.y-size.y) {
+      velocity.negate();
+    }
+    if(position.y < 0+size.y) {
+      velocity.negate();
+    }
+
+
+
+  }
+
+  //
+  //
+  // Create a rudimentary lifebar shape
+  createLifeBar() {
+
+    var lifeBarSize = Vector2(40, 10);
+    var backgroundFillColor = Paint()
+      ..color = Colors.grey.withOpacity(0.35)
+      ..style = PaintingStyle.fill;
+    var outlineColor = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1;
+    var lifeDangerColor = Paint()
+      ..color = Colors.red
+      ..style = PaintingStyle.fill;
+
+    // All positions here are in relation to the parent's position
+    lifeBarElements = [
+      //
+      // The outline of the life bar
+      RectangleComponent(
+        position: Vector2(size.x - lifeBarSize.x, -lifeBarSize.y - 2),
+        size: lifeBarSize,
+        angle: 0,
+        paint: outlineColor,
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
-    );
-  }
-}
+      //
+      // The fill portion of the bar. The semi-transparent portion
+      RectangleComponent(
+        position: Vector2(size.x - lifeBarSize.x, -lifeBarSize.y - 2),
+        size: lifeBarSize,
+        angle: 0,
+        paint: backgroundFillColor,
+      ),
+      //
+      // The actual life percentage as a fill of red or green
+      RectangleComponent(
+        position: Vector2(size.x - lifeBarSize.x, -lifeBarSize.y - 2),
+        size: Vector2( lifeBarSize.x/2, 10),
+        angle: 0,
+        paint: lifeDangerColor,
+      ),
+    ];
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
-
-  @override
-  State<MyHomePage> createState() => _MyHomePageState();
-}
-
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
-
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
     //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
-    return Scaffold(
-      appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
-      ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text(
-              'You have pushed the button this many times:',
-            ),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-          ],
-        ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
-    );
+    // add all lifebar elements to the children of the Square instance
+    addAll(lifeBarElements);
+  }
+}
+
+//
+//
+// The game class
+late Size screenSize;
+
+class ComponentExample001 extends FlameGame
+    with DoubleTapDetector, TapDetector {
+
+
+
+  //
+
+
+
+  // controls if the engine is paused or not
+  bool running = true;
+  @override
+  // runnig in debug mode
+  bool debugMode = false;
+  //
+  // text rendering const
+  final TextPaint textPaint = TextPaint(
+    style: const TextStyle(
+      fontSize: 14.0,
+      fontFamily: 'Awesome Font',
+    ),
+  );
+
+
+  @override
+  FutureOr<void> onLoad() {
+
+    screenSize = size.toSize();
+    print(screenSize);
+  }
+
+
+
+  @override
+  //
+  //
+  // Process user's single tap (tap up)
+  void onTapUp(TapUpInfo info) {
+    // location of user's tap
+    final touchPoint = info.eventPosition.global;
+    print("<user tap> touchpoint: $touchPoint");
+
+    //
+    // handle the tap action
+    //
+    // check if the tap location is within any of the shapes on the screen
+    // and if so remove the shape from the screen
+    final handled = children.any((component) {
+
+
+      if (component is Square && component.containsPoint(touchPoint)) {
+        // remove(component);
+        component.velocity.negate();
+        return true;
+      }
+      return false;
+    });
+
+    //
+    // this is a clean location with no shapes
+    // create and add a new shape to the component tree under the FlameGame
+    if (!handled) {
+      add(Square()
+        ..position = touchPoint
+        ..squareSize = 45.0
+        ..velocity = Vector2(0, 1).normalized() * 25
+        ..color = (Paint()
+          ..color = Colors.red
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2));
+    }
+  }
+
+  @override
+  void onDoubleTap() {
+    if (running) {
+      pauseEngine();
+    } else {
+      resumeEngine();
+    }
+
+    running = !running;
+  }
+
+  @override
+  void render(Canvas canvas) {
+    textPaint.render(
+        canvas, "objects active: ${children.length}", Vector2(10, 20));
+    super.render(canvas);
   }
 }
