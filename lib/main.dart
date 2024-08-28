@@ -4,7 +4,6 @@ import 'dart:math';
 import 'package:flame/components.dart';
 import 'package:flame/events.dart';
 import 'package:flame/extensions.dart';
-import 'package:flame/flame.dart';
 import 'package:flame/game.dart';
 import 'package:flame/image_composition.dart';
 import 'package:flame/input.dart';
@@ -19,17 +18,14 @@ void main() {
   );
 }
 
-//
-//
+
 // Simple component shape example of a square component
-class Square extends PositionComponent with HasGameRef<ComponentExample001>{
-
-
-@override
+class Square extends PositionComponent with HasGameRef<ComponentExample001> {
+  @override
   // TODO: implement gameRef
   ComponentExample001 get gameRef => super.gameRef;
 
-
+  double health = 40;
 
   // default values
   //
@@ -51,7 +47,6 @@ class Square extends PositionComponent with HasGameRef<ComponentExample001>{
     size.setValues(squareSize, squareSize);
     anchor = Anchor.center;
     createLifeBar();
-
   }
 
   @override
@@ -69,29 +64,29 @@ class Square extends PositionComponent with HasGameRef<ComponentExample001>{
   void update(double dt) {
     super.update(dt);
     // speed is refresh frequency independent
-    position +=  velocity *dt ;
+    position += velocity * dt;
     // add rotational speed update as well
     var angleDelta = dt * rotationSpeed;
     angle = (angle + angleDelta) % (2 * pi);
 
-
-
-    if(position.y > gameRef.size.y-size.y) {
-      velocity.negate();
-    }
-    if(position.y < 0+size.y) {
-      velocity.negate();
+    if (health <= 0) {
+      removeFromParent();
     }
 
+    if (position.y > gameRef.size.y - size.y) {
+      velocity.negate();
+    }
+    if (position.y < 0 + size.y) {
+      velocity.negate();
+    }
 
-
+    createLifeBar();
   }
 
   //
   //
   // Create a rudimentary lifebar shape
   createLifeBar() {
-
     var lifeBarSize = Vector2(40, 10);
     var backgroundFillColor = Paint()
       ..color = Colors.grey.withOpacity(0.35)
@@ -126,7 +121,7 @@ class Square extends PositionComponent with HasGameRef<ComponentExample001>{
       // The actual life percentage as a fill of red or green
       RectangleComponent(
         position: Vector2(size.x - lifeBarSize.x, -lifeBarSize.y - 2),
-        size: Vector2( lifeBarSize.x/2, 10),
+        size: Vector2((health / lifeBarSize.x) * lifeBarSize.x, 10),
         angle: 0,
         paint: lifeDangerColor,
       ),
@@ -145,18 +140,14 @@ late Size screenSize;
 
 class ComponentExample001 extends FlameGame
     with DoubleTapDetector, TapDetector {
-
-
-
   //
-
-
 
   // controls if the engine is paused or not
   bool running = true;
   @override
   // runnig in debug mode
   bool debugMode = false;
+
   //
   // text rendering const
   final TextPaint textPaint = TextPaint(
@@ -166,15 +157,11 @@ class ComponentExample001 extends FlameGame
     ),
   );
 
-
   @override
   FutureOr<void> onLoad() {
-
     screenSize = size.toSize();
     print(screenSize);
   }
-
-
 
   @override
   //
@@ -191,11 +178,10 @@ class ComponentExample001 extends FlameGame
     // check if the tap location is within any of the shapes on the screen
     // and if so remove the shape from the screen
     final handled = children.any((component) {
-
-
       if (component is Square && component.containsPoint(touchPoint)) {
         // remove(component);
-        component.velocity.negate();
+        /// component.velocity.negate();
+        component.health -= 5;
         return true;
       }
       return false;
@@ -230,7 +216,9 @@ class ComponentExample001 extends FlameGame
   @override
   void render(Canvas canvas) {
     textPaint.render(
-        canvas, "objects active: ${children.length}", Vector2(10, 20));
+        canvas,
+        "Squares active: ${children.where((element) => element is Square).length}",
+        Vector2(10, 20));
     super.render(canvas);
   }
 }
