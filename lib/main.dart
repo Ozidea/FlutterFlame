@@ -133,8 +133,6 @@ class Square extends PositionComponent with HasGameRef<ComponentExample001> {
   }
 }
 
-//
-//
 // The game class
 late Size screenSize;
 
